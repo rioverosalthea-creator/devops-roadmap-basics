@@ -1,0 +1,35 @@
+# Instructor check: the full lab stack starts and all 3 ports answer.
+# Runs only in the template repo, so students' copies keep the simple CI from Lab 5.
+name: Lab stack (ports 8000/3000/9090)
+
+on:
+  push:
+    branches: [main]
+    paths: [compose.yaml, app/**, monitoring/**, scripts/start.sh, scripts/cleanup.sh, .github/workflows/stack.yml]
+  workflow_dispatch:
+
+jobs:
+  stack:
+    if: github.repository == 'neo64347/devops-roadmap-basics'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start everything
+        run: bash scripts/start.sh
+      - name: Grafana has the Web App dashboard
+        run: curl -fsS "http://localhost:3000/api/search?query=Web%20App" | grep -q '"title":"Web App"'
+      - name: Prometheus scrapes the web app
+        run: |
+          for i in $(seq 1 15); do
+            curl -fsS "http://localhost:9090/api/v1/query?query=up%7Bjob%3D%22web%22%7D" | grep -q '"value":\[[^]]*,"1"\]' && exit 0
+            sleep 2
+          done
+          curl -s "http://localhost:9090/api/v1/targets"; exit 1
+      - name: Logs on failure
+        if: failure()
+        run: docker compose --profile monitoring logs
+      - name: Clean up (end-of-session script)
+        if: always()
+        run: |
+          bash scripts/cleanup.sh
+          test -z "$(docker compose --profile monitoring ps -q)"

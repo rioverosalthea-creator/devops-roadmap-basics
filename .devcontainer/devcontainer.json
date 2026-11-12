@@ -1,0 +1,39 @@
+{
+  "name": "DevOps Roadmap Basics",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/terraform:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "hostRequirements": {
+    "cpus": 2
+  },
+  "forwardPorts": [
+    8000,
+    3000,
+    9090
+  ],
+  "portsAttributes": {
+    "8000": {
+      "label": "Web app"
+    },
+    "3000": {
+      "label": "Grafana"
+    },
+    "9090": {
+      "label": "Prometheus"
+    }
+  },
+  "postCreateCommand": "pip install --user -r app/requirements.txt -r app/requirements-dev.txt",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-docker",
+        "hashicorp.terraform",
+        "github.vscode-github-actions",
+        "github.vscode-pull-request-github"
+      ]
+    }
+  }
+}

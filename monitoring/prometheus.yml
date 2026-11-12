@@ -1,0 +1,8 @@
+# Prometheus asks ("scrapes") the web app for metrics every 5 seconds
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: web
+    static_configs:
+      - targets: ["web:8000"]

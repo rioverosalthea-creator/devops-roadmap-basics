@@ -1,0 +1,55 @@
+# CI pipeline: runs automatically on every push and pull request.
+# Stage 1 runs the tests. Stage 2 (only if tests pass) builds the Docker image
+# and checks that the container actually starts and answers /health.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run tests
+        run: pytest -v
+
+  build:
+    name: Build and smoke-test Docker image
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Build the image
+        run: docker build -t devops-demo:${{ github.sha }} app
+
+      - name: Start the container
+        run: docker run -d --name demo -p 8000:8000 devops-demo:${{ github.sha }}
+
+      - name: Check it answers /health
+        run: |
+          for i in $(seq 1 10); do
+            curl -fsS http://localhost:8000/health && exit 0
+            sleep 1
+          done
+          docker logs demo
+          exit 1

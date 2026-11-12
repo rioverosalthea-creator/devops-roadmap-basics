@@ -1,0 +1,45 @@
+# Docker Compose: run several containers together with one command.
+#   docker compose up -d                        → web app + Redis
+#   docker compose --profile monitoring up -d   → also Prometheus + Grafana
+#   bash scripts/cleanup.sh                     → stop and remove everything after the session
+services:
+  web:
+    build: ./app
+    restart: "no"   # lab containers never restart by themselves (reboot / Codespace restart)
+    ports:
+      - "8000:8000"
+    environment:
+      REDIS_HOST: redis
+      GREETING: "Hello from Docker Compose!"
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    restart: "no"
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    restart: "no"
+    profiles: ["monitoring"]
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    restart: "no"
+    profiles: ["monitoring"]
+    ports:
+      - "3000:3000"
+    environment:
+      # Lab only: skip the login screen. Never do this in production.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
